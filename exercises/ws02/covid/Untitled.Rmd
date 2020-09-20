@@ -1,0 +1,47 @@
+---
+title: "Covid"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(tidyverse)
+dc <- read_delim(here("exercises", "ws02", "covid", "Municipality_cases_time_series.csv"), ";", escape_double = FALSE, trim_ws = TRUE)
+dt <- read_delim(here("exercises", "ws02", "covid", "Municipality_tested_persons_time_series.csv"), ";", escape_double = FALSE, trim_ws = TRUE)
+dsize <- read_delim(here("exercises", "ws02", "covid", "Municipality_test_pos.csv"), ";", escape_double = FALSE, trim_ws = TRUE)
+
+dsize <- dsize %>%
+  select(contains("Kom"), Befolkningstal) %>%
+  rename("kID" = `Kommune_(id)`, "kommune" = `Kommune_(navn)`, population = Befolkningstal) %>%
+  mutate(population = population * 1000) %>%
+  select(-kID)
+
+dsize$kommune <- str_replace(dsize$kommune, "København", "Copenhagen")
+dcl <- merge(dcl,dsize)
+dct <- merge(dct,dsize)
+
+```
+
+## Covid data analysis DK overview
+
+
+```{r cars}
+dcl <- dc %>% pivot_longer(cols = !date_sample, names_to = "kommune")
+dct <- dt %>% pivot_longer(cols = !PrDate_adjusted, names_to = "kommune")
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+```{r}
+
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
