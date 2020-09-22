@@ -1,6 +1,8 @@
 ---
 title: "Covid"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=TRUE}
@@ -11,31 +13,43 @@ library(roll)
 library(magrittr)
 
 # import data frames COVID: cases, tests and population size of municipalities
-dc <- read_delim(here("exercises", "ws02", "covid", "Municipality_cases_time_series.csv"), ";", escape_double = FALSE, trim_ws = TRUE)
-dt <- read_delim(here("exercises", "ws02", "covid", "Municipality_tested_persons_time_series.csv"), ";", escape_double = FALSE, trim_ws = TRUE)
-dsize <- read_delim(here("exercises", "ws02", "covid", "Municipality_test_pos.csv"), ";", escape_double = FALSE, trim_ws = TRUE)
-
+dc <- read_delim(here("exercises", "ws02", "covid","data", "Municipality_cases_time_series.csv"), ";", escape_double = FALSE, trim_ws = TRUE)
+dt <- read_delim(here("exercises", "ws02", "covid","data", "Municipality_tested_persons_time_series.csv"), ";", escape_double = FALSE, trim_ws = TRUE)
+dsize <- read_delim(here("exercises", "ws02", "covid","data", "Municipality_test_pos.csv"), ";", escape_double = FALSE, trim_ws = TRUE)
+```
+## Covid data analysis DK overview
+```{r dataFramesGlimpse , include=TRUE}
 dc
 dt
 dsize
+```
 
-
+```{r dc-diagnosedCases, include=TRUE}
 # make data tidy
 dc %<>% 
   #use pivot_longer to transpose all columns (apart from date_sample) to two columns ('kommune','testsConducted') that hold the name of the kommune and the values of the number of diagnosed cases
   pivot_longer(cols = !date_sample, names_to = "kommune", values_to = "casesDiagnosed") %>% arrange(kommune, date_sample)
+dc
+```
 
+```{r testedPeople, include=TRUE}
 dt %<>% 
   #use pivot_longer to transpose all columns (apart from PrDate_adjusted) to two columns ('kommune','testsConducted') that hold the name of the kommune and the values of the number of conducted tests 
   pivot_longer(cols = !PrDate_adjusted, names_to = "kommune", values_to = "testsConducted") %>%
   arrange(kommune, PrDate_adjusted) %>%
-  rename(date_sample = PrDate_adjusted)
+  rename(date_sample = PrDate_adjusted) %>%
+  filter(!(kommune == "X101"))
 
+```
+
+```{r NAtests, include=TRUE}
 # check there are no NA in the sets dc and dt , dc$casesDiagnosed, and dt$testsConducted
 sum(is.na(dc$casesDiagnosed))
 sum(is.na(dt$testsConducted))
 sum(is.na(dsize$Befolkningstal))
+```
 
+```{r columnRenaming, include=TRUE}
 # make data compatible rename columns for merging 
 dsize <- dsize %>%
   select(contains("Kom"), Befolkningstal) %>%
@@ -43,11 +57,16 @@ dsize <- dsize %>%
   mutate(population = population * 1000) %>%
   select(-kID)
 
+```
+
+```{r keyCheck, include=TRUE}
 # check Kommune name can be used as key
 dc[!(dc$kommune %in% dsize$kommune), ]$kommune
 dsize[!(dsize$kommune %in% dt$kommune), ]$kommune
 dt[!(dt$kommune %in% dsize$kommune), ]$kommune
+```
 
+```{r Cph-kbh-CleanUp, include=TRUE}
 # ooops!
 # for some reason one data frame uses Københaven the other Copenhagen), - use str_replace to change "København", "Copenhagen"
 dsize$kommune <- str_replace(dsize$kommune, "København", "Copenhagen")
@@ -58,10 +77,18 @@ dsize$kommune <- str_replace(dsize$kommune, "København", "Copenhagen")
 dc <- merge(dc, dsize)
 dt <- merge(dt, dsize)
 
-# create new variables (e.g. rolling aggregates) - numbers per 1000 people
+```
+
+```{r DeriveVariablesCases, include=TRUE}
+
+# create new variables within mutate 
+# (e.g. rolling aggregates with roll_sum - cases of the last seven days) - 
+# numbers per 1000 people 
+# use the lag function to compute the differences between a days (7day sum) value and the one from 7 days (3, and 1) ago
+#
 dc %<>% 
   group_by(kommune) %>%
-  arrange(date_sample) %>%
+  arrange(kommune,date_sample) %>%
   mutate(dcr100k = casesDiagnosed / (population / 100000), 
          dcr7d = roll_sum(casesDiagnosed, width = 7, min_obs = 1) / (population / 100000),
          dcr7dPer100k= dcr7d /(population / 100000),
@@ -70,46 +97,39 @@ dc %<>%
          dcr7dPer100kCh7 = lag(dcr7dPer100k,7)-dcr7dPer100k
          )
 
+dc
+```
+
+```{r DeriveVariablesTests}
 dt %<>% 
   group_by(kommune) %>% 
-  arrange(date_sample) %>%
+  arrange(kommune,date_sample) %>%
   mutate(tr100k = testsConducted / (population / 100000), 
          tr7d = roll_sum(testsConducted, width = 7, min_obs = 1), 
          tr7dP100k = tr7d / (population / 100000),
-         tr7dP100kkCh1 = lag(tr7dP100k,1)-tr7dP100k,
+         tr7dP100kCh1 = lag(tr7dP100k,1)-tr7dP100k,
          tr7dP100kCh3 = lag(tr7dP100k,3)-tr7dP100k,
          tr7dP100kCh7 = lag(tr7dP100k,7)-tr7dP100k
          )
+dt
+```
 
-# merge test with case data
+```{r Merge}
+# merge test with case data (on shared keys - date_sample+kommune)
 df <- merge(dc, dt)
+df
 
 #create test positive variables 
 df %<>% 
-  mutate(PosTestRate7d = ir7dP100k / tr7dP100k, 
-  PosTestRateOnDay = dcr100k / tr100k)
-
-# use the lag function 
-
+  mutate(
+    PosTestRateOnDay = dcr100k / tr100k,
+    PosTestRate7d = dcr7dPer100k / tr7dP100k, 
+  )
+    
 
 # check there were no diagnosis without tests
 sum(df$casesDiagnosed > df$testsConducted)
 ```
 
 ## Covid data analysis DK overview
-
-
-```{r cars}
-
-```
-
-## Including Plots
-
-
-
-```{r}
-
-```
-
-
 
