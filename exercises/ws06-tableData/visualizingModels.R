@@ -43,7 +43,7 @@ model1 <- function(a, data) {
 
 model1(c(5, 1.5), sim1)
 
-#let's compute the distance through "root-mean-squared deviatoin"
+#let's compute the distance through "root-mean-squared deviation"
 measure_distance <- function(mod, data) {
   diff <- data$y - model1(mod, data)
   sqrt(mean(diff ^ 2))
@@ -185,7 +185,7 @@ ggplot(sim3, aes(x1, y, colour = x2)) +
 
 ggplot(sim3, aes(x1, y, colour = x2)) + 
   geom_point() + 
-  geom_step(data = grid, aes(y = pred)) + 
+  geom_line(data = grid, aes(y = pred)) + 
   facet_wrap(~ model)
 
 
@@ -235,6 +235,6 @@ ggplot(grid, aes(x2, pred, colour = x1, group = x1)) +
 sim4_mods <- gather_residuals(sim4, mod1, mod2)
 ggplot(sim4_mods, aes(x = abs(resid), colour = model)) +
   geom_freqpoly(binwidth = 0.5) +
-  geom_rug()
+  geom_rug()+theme_bw()
 +
   facet_wrap(~ model)
