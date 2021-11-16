@@ -7,30 +7,27 @@ library(modelr)
 
 df <- read.csv(here("exercises", "ws06-tableData", "election exercise", "london_council_election_2014_ward.csv"))
 
+# create the position for each candidate in alphabetical order per ward and party
 df <- df %>%
   group_by(Ward_code, party) %>%
   arrange(candidate) %>%
   mutate(position_within = 1:n()) %>%
   ungroup()
 
-df <- df %>%
-  group_by(Ward_code) %>%
-  arrange(candidate) %>%
-  mutate(position_overall = 1:n()) %>%
-  ungroup()
-
+# create the position for each candidate in alphabetical order per ward independent of party
 df <- df %>%
   group_by(Ward_code) %>%
   arrange(candidate) %>%
   mutate(position_overall = 1:n()) %>% 
   ungroup()
 
+# create countable numbers based on elected flag
 db <- df %>%
   filter(party %in% c("CON", "LAB", "LD")) %>%
   group_by(Borough_name, party, position_within) %>%
   summarise(elected = sum(ifelse(elected_flag == "Yes", 1, 0)))
 
-# create a data grid with all borough party combinations
+# create a data grid with all combinations of borough and party, in case some parties were not present in the borough
 gr <- df %>%
   filter(party %in% c("CON", "LAB", "LD")) %>%
   data_grid(Borough_code, party,position_within=c(1,2,3))
