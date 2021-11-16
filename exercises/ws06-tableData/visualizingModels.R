@@ -48,10 +48,12 @@ measure_distance <- function(mod, data) {
   diff <- data$y - model1(mod, data)
   sqrt(mean(diff ^ 2))
 }
+
+#let's check whether this works with intercept 7 and slope of 1.5
 measure_distance(c(7, 1.5), sim1)
 
 #Now we can use purrr to compute the distance for all the models defined above. 
-# We need a helper function because our distance function expects the model as a numeric vector of length 2.
+# But we need a helper function because our distance function expects the model as a numeric vector of length 2.
 
 sim1_dist <- function(a1, a2) {
   measure_distance(c(a1, a2), sim1)
@@ -166,7 +168,7 @@ geom_point(aes(y = y),alpha=.5)
 ggplot(sim3, aes(x1, y)) + 
   geom_point(aes(colour = x2))
 
-# we can fit two models to this one with x1,x2 independent one muliplicative (interaction)
+# we can fit two models to this one with x1,x2  one additive, one multiplicative (interaction)
 mod1 <- lm(y ~ x1 + x2, data = sim3)
 mod2 <- lm(y ~ x1 * x2, data = sim3)
 
@@ -214,7 +216,7 @@ grid
 
 
 #instead of every unique value of x we're using a regularly spaced grid between min and max
-#pretty = TURE makes for nice axis labels but not necessary here
+#pretty = TRUE makes for nice axis labels but not necessary here
 
 ggplot(grid, aes(x1, x2)) + 
   geom_tile(aes(fill = pred)) + 
